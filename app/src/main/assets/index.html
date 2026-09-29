@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f2230">
+<title>AI জুটি</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<style>
+:root{
+  --bg:#f5f4ef;--panel:#ffffff;--soft:#efede6;--text:#1d1d1f;--muted:#6b6b72;--line:#e2dfd6;
+  --claude:#c96442;--claude-bg:#fbf1ec;--gpt:#0f9a78;--gpt-bg:#eaf7f2;--accent:#2f4bd1;--err:#c92a2a;--err-bg:#fdeeee;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#15161b;--panel:#1e2027;--soft:#262831;--text:#ececf1;--muted:#9a9ba6;--line:#30323c;
+    --claude:#e08563;--claude-bg:#2a211d;--gpt:#27c29a;--gpt-bg:#17271f;--accent:#7d93ff;--err:#ff7b7b;--err-bg:#2c1c1c;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15161b;--panel:#1e2027;--soft:#262831;--text:#ececf1;--muted:#9a9ba6;--line:#30323c;
+  --claude:#e08563;--claude-bg:#2a211d;--gpt:#27c29a;--gpt-bg:#17271f;--accent:#7d93ff;--err:#ff7b7b;--err-bg:#2c1c1c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:"Hind Siliguri",system-ui,sans-serif;font-size:16px;line-height:1.6;display:flex;flex-direction:column}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.top{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;align-items:center;gap:10px;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:8px;min-width:0}
+.brand b{font-size:19px}
+.brand small{color:var(--muted);white-space:nowrap}
+.dots{display:flex}
+.dots i{width:14px;height:14px;border-radius:50%;display:block;border:2px solid var(--panel)}
+.dots i:first-child{background:var(--claude)}
+.dots i:last-child{background:var(--gpt);margin-left:-5px}
+.hbtns{display:flex;gap:6px}
+.hbtns button{border:1px solid var(--line);background:var(--soft);border-radius:10px;padding:5px 10px;font-size:14px}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 16px;max-width:1100px;width:100%;margin:0 auto}
+.modes button{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:8px 6px;font-weight:600;line-height:1.3;text-align:center}
+.modes button small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px}
+.modes button.on{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
+main{flex:1;overflow-y:auto;padding:4px 16px 20px;max-width:1100px;width:100%;margin:0 auto}
+.empty{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:8px;box-shadow:var(--shadow)}
+.empty h2{margin:0 0 6px;font-size:20px}
+.empty ul{padding-left:20px;margin:8px 0}
+.empty .warn{background:var(--soft);border-radius:10px;padding:8px 12px;font-size:14px}
+.turn{margin:18px 0 26px}
+.uq{background:var(--accent);color:#fff;border-radius:16px 16px 4px 16px;padding:10px 14px;margin-left:auto;max-width:85%;width:fit-content;white-space:pre-wrap;word-break:break-word}
+.group{margin-top:14px}
+.gtitle{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px 2px;letter-spacing:.2px}
+.gbody{display:grid;gap:10px}
+@media (min-width:760px){.cols .gbody{grid-template-columns:1fr 1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);min-width:0}
+.card>header{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:14px;border-bottom:1px solid var(--line)}
+.card.claude>header{background:var(--claude-bg)}
+.card.gpt>header{background:var(--gpt-bg)}
+.who{font-weight:700}
+.claude .who{color:var(--claude)}
+.gpt .who{color:var(--gpt)}
+.lbl{color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{border:0;background:transparent;color:var(--muted);font-size:13px;padding:2px 6px;border-radius:6px}
+.copy:hover{background:var(--soft)}
+.body{padding:10px 14px;overflow-x:auto;word-break:break-word}
+.body>:first-child{margin-top:0}.body>:last-child{margin-bottom:0}
+.body pre{background:var(--soft);padding:10px;border-radius:8px;overflow-x:auto;font-size:14px}
+.body code{font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+.body table{border-collapse:collapse;width:100%;font-size:14px}
+.body th,.body td{border:1px solid var(--line);padding:5px 8px;text-align:left}
+.card.err .body{background:var(--err-bg);color:var(--err);white-space:pre-wrap}
+.loading{color:var(--muted);display:flex;align-items:center;gap:4px}
+.loading i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:b 1s infinite ease-in-out}
+.loading i:nth-child(2){animation-delay:.15s}.loading i:nth-child(3){animation-delay:.3s;margin-right:6px}
+@keyframes b{0%,80%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+.note{margin-top:10px;font-size:14px;color:var(--muted)}
+.note.bad{color:var(--err)}
+.mergebtn{margin-top:10px;border:1px dashed var(--accent);color:var(--accent);background:transparent;border-radius:10px;padding:7px 12px;font-weight:600}
+.composer{position:sticky;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:10px 16px calc(8px + env(safe-area-inset-bottom))}
+.crow{display:flex;gap:8px;align-items:flex-end;max-width:1100px;margin:0 auto}
+.crow textarea{flex:1;resize:none;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:10px 12px;max-height:180px;min-height:46px;outline:none}
+.crow textarea:focus{border-color:var(--accent)}
+.send{border:0;border-radius:14px;padding:0 18px;height:46px;font-weight:700;background:var(--accent);color:#fff}
+.send.stop{background:var(--err)}
+.send:disabled{opacity:.5}
+.foot{text-align:center;font-size:11.5px;color:var(--muted);margin-top:6px}
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--text);padding:0;width:min(560px,calc(100vw - 24px));max-height:calc(100vh - 40px)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dhead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+.dhead h3{margin:0;font-size:18px}
+.dbody{padding:12px 16px;overflow-y:auto}
+.sec{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.sec h4{margin:0 0 6px;font-size:15px}
+.sec.c h4{color:var(--claude)}.sec.g h4{color:var(--gpt)}
+label{display:block;font-size:13.5px;color:var(--muted);margin:6px 0 3px}
+.in{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:8px 10px}
+.row{display:flex;gap:8px;align-items:center}
+.row .in{flex:1}
+.tbtn{border:1px solid var(--line);background:var(--soft);border-radius:9px;padding:7px 10px;font-size:14px;white-space:nowrap}
+.tres{font-size:13px;margin-top:4px;min-height:1em}
+.tres.ok{color:var(--gpt)}.tres.bad{color:var(--err)}
+.chk{display:flex;gap:8px;align-items:center;color:var(--text);font-size:14.5px}
+.hint{font-size:13px;color:var(--muted);margin:6px 0 0}
+.dfoot{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}
+.dfoot button{border-radius:10px;padding:8px 16px;font-weight:600;border:1px solid var(--line);background:var(--soft)}
+.dfoot .primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.dmsg{color:var(--err);font-size:14px;margin:0 0 8px;font-weight:600}
+.attach{border:1px solid var(--line);background:var(--soft);border-radius:14px;width:46px;height:46px;font-size:20px;flex:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;max-width:1100px;margin:0 auto 8px}
+.chip{display:flex;align-items:center;gap:6px;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:4px 6px 4px 4px;font-size:13px;max-width:240px}
+.chip img{width:34px;height:34px;object-fit:cover;border-radius:6px;flex:none}
+.chip .ic{width:34px;height:34px;border-radius:6px;background:var(--panel);display:grid;place-items:center;font-size:17px;flex:none}
+.chip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.chip .nm small{display:block;color:var(--muted);font-size:11.5px}
+.chip.bad{border-color:var(--err);color:var(--err)}
+.chip button{border:0;background:transparent;color:var(--muted);font-size:16px;padding:0 4px;flex:none}
+.uatt{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;margin-top:6px}
+.uatt img{max-width:160px;max-height:120px;border-radius:10px;border:1px solid var(--line);object-fit:cover}
+.uatt span{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:13px}
+body.drag::after{content:"ফাইল এখানে ছেড়ে দিন";position:fixed;inset:10px;border:3px dashed var(--accent);border-radius:18px;background:color-mix(in srgb,var(--bg) 85%,transparent);display:grid;place-items:center;font-size:22px;font-weight:700;color:var(--accent);z-index:50;pointer-events:none}
+.mfiles{display:flex;flex-direction:column;gap:6px;background:var(--soft);border-radius:10px;padding:8px 10px;font-size:14px}
+.mfiles div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mfiles img{width:40px;height:40px;object-fit:cover;border-radius:6px}
+.mfiles a{color:var(--accent);font-size:13px}
+.man{display:flex;flex-direction:column;gap:8px}
+.mstep{margin:0;font-size:14.5px}
+.mstep b{display:inline-block;min-width:1.4em}
+.man details{font-size:14px}
+.man summary{cursor:pointer;color:var(--muted)}
+.man pre{white-space:pre-wrap;max-height:220px;overflow:auto;margin:6px 0 0}
+.mrow{display:flex;gap:8px;flex-wrap:wrap}
+.mbtn{display:inline-block;text-decoration:none;border:0;border-radius:10px;padding:8px 14px;font-weight:600;color:#fff;font-size:15px}
+.claude .mbtn{background:var(--claude)}.gpt .mbtn{background:var(--gpt)}
+.mbtn2{border:1px solid var(--line);background:var(--soft);border-radius:10px;padding:7px 12px;font-size:14px}
+.ma{min-height:110px;resize:vertical;font-size:15px}
+.mmsg{font-size:13px;color:var(--err);margin:0}
+.mdone{font-size:13px;color:var(--gpt)}
+@media (max-width:480px){.brand small{display:none}.modes button small{font-size:11px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="dots"><i></i><i></i></span><b>AI জুটি</b><small>Claude + ChatGPT একসাথে</small></div>
+  <div class="hbtns">
+    <button id="exportBtn" title="আলোচনা ফাইলে সংরক্ষণ">⬇ সংরক্ষণ</button>
+    <button id="newBtn" title="নতুন আলোচনা">＋ নতুন</button>
+    <button id="setBtn" title="সেটিংস">⚙</button>
+  </div>
+</header>
+
+<nav class="modes" id="modes">
+  <button data-mode="parallel">পাশাপাশি<small>দুজনেই আলাদা উত্তর দেবে</small></button>
+  <button data-mode="collab">সহযোগিতা<small>খসড়া → পর্যালোচনা → চূড়ান্ত</small></button>
+  <button data-mode="debate">আলোচনা<small>যুক্তি-পাল্টা যুক্তি → সমন্বয়</small></button>
+</nav>
+
+<main id="chat"></main>
+
+<div class="composer">
+  <div class="chips" id="chips" hidden></div>
+  <form class="crow" id="form">
+    <button class="attach" id="attBtn" type="button" title="ছবি বা ফাইল যোগ করুন" aria-label="ছবি বা ফাইল যোগ করুন">📎</button>
+    <input type="file" id="fileIn" multiple hidden accept="image/*,.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.json,.html,.htm,.xml,.js,.css,.py,.php,.sql,.log">
+    <textarea id="q" rows="1" placeholder="প্রশ্ন লিখুন… (ছবি পেস্ট বা ফাইল টেনে আনাও যাবে)"></textarea>
+    <button class="send" id="sendBtn" type="submit">পাঠান</button>
+  </form>
+  <div class="foot">Developed by: Regan Barua</div>
+</div>
+
+<dialog id="dlg">
+  <div class="dhead"><h3>⚙ সেটিংস</h3><button class="tbtn" id="xBtn" type="button">✕</button></div>
+  <div class="dbody">
+    <p class="dmsg" id="dmsg" hidden></p>
+    <div class="sec c">
+      <h4>Claude (Anthropic)</h4>
+      <label for="cmode">সংযোগ পদ্ধতি</label>
+      <select class="in" id="cmode"><option value="manual">সাবস্ক্রিপশন দিয়ে (কপি-পেস্ট, বাড়তি খরচ নেই)</option><option value="api">API কী দিয়ে (স্বয়ংক্রিয়)</option></select>
+      <div id="cApi">
+      <label for="ck">API কী</label>
+      <div class="row"><input class="in" id="ck" type="password" placeholder="sk-ant-..." autocomplete="off"><button class="tbtn" type="button" id="tc">যাচাই</button></div>
+      <div class="tres" id="tcr"></div>
+      <label for="cm">মডেল</label>
+      <input class="in" id="cm" list="cml" autocomplete="off">
+      <datalist id="cml">
+        <option value="claude-sonnet-5-5">সুষম (প্রস্তাবিত)</option>
+        <option value="claude-opus-5-5">সবচেয়ে শক্তিশালী</option>
+        <option value="claude-haiku-4-5-20251001">দ্রুত ও কম খরচ</option>
+      </datalist>
+      </div>
+    </div>
+    <div class="sec g">
+      <h4>ChatGPT (OpenAI)</h4>
+      <label for="omode">সংযোগ পদ্ধতি</label>
+      <select class="in" id="omode"><option value="manual">সাবস্ক্রিপশন দিয়ে (কপি-পেস্ট, বাড়তি খরচ নেই)</option><option value="api">API কী দিয়ে (স্বয়ংক্রিয়)</option></select>
+      <div id="oApi">
+      <label for="ok">API কী</label>
+      <div class="row"><input class="in" id="ok" type="password" placeholder="sk-..." autocomplete="off"><button class="tbtn" type="button" id="tg">যাচাই</button></div>
+      <div class="tres" id="tgr"></div>
+      <label for="om">মডেল</label>
+      <input class="in" id="om" list="oml" autocomplete="off">
+      <datalist id="oml">
+        <option value="gpt-5"></option>
+        <option value="gpt-5-mini"></option>
+        <option value="gpt-4.1"></option>
+        <option value="gpt-4o"></option>
+      </datalist>
+      <p class="hint">মডেলের নাম আপনার OpenAI অ্যাকাউন্টে যা আছে তা লিখুন।</p>
+      </div>
+    </div>
+    <p class="hint" style="margin:-4px 0 12px">কপি-পেস্ট পদ্ধতিতে অ্যাপ প্রতিটি ধাপের প্রশ্ন বানিয়ে দেবে; আপনি সেটা claude.ai / chatgpt.com-এ দিয়ে উত্তরটা অ্যাপে পেস্ট করবেন।</p>
+    <div class="sec">
+      <h4>দলগত কাজ</h4>
+      <label for="lead">প্রধান AI (খসড়া ও চূড়ান্ত উত্তর লিখবে)</label>
+      <select class="in" id="lead"><option value="claude">Claude</option><option value="gpt">ChatGPT</option></select>
+      <label for="rounds">আলোচনা মোডে রাউন্ড সংখ্যা</label>
+      <select class="in" id="rounds"><option value="2">২ রাউন্ড</option><option value="3">৩ রাউন্ড</option><option value="4">৪ রাউন্ড</option></select>
+      <label for="sys">দুই AI-এর জন্য অতিরিক্ত নির্দেশনা (ঐচ্ছিক)</label>
+      <textarea class="in" id="sys" rows="3" placeholder="যেমন: সব উত্তর সংক্ষেপে বাংলায় দেবে।"></textarea>
+    </div>
+    <label class="chk"><input type="checkbox" id="remember"> এই ডিভাইসে API কী মনে রাখুন</label>
+    <p class="hint">কী শুধু আপনার এই ব্রাউজারে থাকে এবং সরাসরি Anthropic ও OpenAI-এর সার্ভারে যায়; অন্য কোথাও পাঠানো হয় না। পাবলিক বা অন্যের কম্পিউটারে “মনে রাখুন” বন্ধ রাখুন।</p>
+  </div>
+  <div class="dfoot"><button type="button" id="cancelBtn">বাতিল</button><button type="button" class="primary" id="saveBtn">সংরক্ষণ</button></div>
+</dialog>
+
+<script>
+(function(){
+'use strict';
+const LS='aijuti_';
+const S={
+  get(k,d){try{const v=localStorage.getItem(LS+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},
+  set(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v));}catch(e){}}
+};
+const DEF={cmode:'manual',omode:'manual',ck:'',cm:'claude-sonnet-5-5',ok:'',om:'gpt-5',lead:'claude',rounds:2,sys:'',remember:true};
+const SITE={claude:'https://claude.ai/new',gpt:'https://chatgpt.com/'};
+const isManual=w=>(w==='claude'?cfg.cmode:cfg.omode)!=='api';
+function missingKeys(){
+  const n=[];
+  if(!isManual('claude')&&!cfg.ck)n.push('Claude');
+  if(!isManual('gpt')&&!cfg.ok)n.push('ChatGPT');
+  return n;
+}
+let cfg=Object.assign({},DEF,S.get('cfg',{}));
+let mode=S.get('mode','parallel');
+let history=S.get('history',[]);
+let busy=false,ctrl=null,curRec=null;
+const NAME={claude:'Claude',gpt:'ChatGPT'};
+const other=w=>w==='claude'?'gpt':'claude';
+const $=s=>document.querySelector(s);
+const NATIVE=window.AIJuti||null; // মোবাইল অ্যাপের ভেতরে চললে পাওয়া যায়
+const chat=$('#chat');
+
+/* ---------- helpers ---------- */
+function md(t){
+  if(window.marked&&window.DOMPurify){try{return DOMPurify.sanitize(marked.parse(t||''));}catch(e){}}
+  const d=document.createElement('div');d.textContent=t||'';return d.innerHTML.replace(/\n/g,'<br>');
+}
+function scrollEnd(){chat.scrollTop=chat.scrollHeight;}
+function copyText(t,btn){
+  const done=()=>{const o=btn.textContent;btn.textContent='✓ কপি হয়েছে';setTimeout(()=>btn.textContent=o,1400);};
+  if(NATIVE){NATIVE.copy(t);done();return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done).catch(()=>fallbackCopy(t,done));}
+  else fallbackCopy(t,done);
+}
+function fallbackCopy(t,done){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');done();}catch(e){}a.remove();}
+function abortErr(){const e=new Error('aborted');e.name='AbortError';return e;}
+function clip(t,n){t=t||'';return t.length>n?t.slice(0,n)+'\n…(সংক্ষেপিত)':t;}
+
+/* ---------- attachments ---------- */
+const attMap=new WeakMap();
+let pending=[]; // {id,name,kind,mime,data,url,text,status:'loading'|'ok'|'err',err}
+let aid=0;
+const MAXF=20*1024*1024, MAXTXT=150000, MAXDIM=2000;
+const TEXT_EXT=/\.(txt|md|csv|json|html?|xml|js|css|py|php|sql|log|tsv|ts|java|c|cpp|yml|yaml|ini)$/i;
+const LIBS={
+  xlsx:['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'],
+  mammoth:['https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js','https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js']
+};
+const libP={};
+function loadLib(k,glob){
+  if(window[glob])return Promise.resolve(window[glob]);
+  if(libP[k])return libP[k];
+  libP[k]=(async()=>{
+    for(const u of LIBS[k]){
+      try{await new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=no;document.head.appendChild(s);});if(window[glob])return window[glob];}catch(e){}
+    }
+    libP[k]=null;throw new Error('ফাইল পড়ার টুল লোড হয়নি। ইন্টারনেট চেক করে আবার চেষ্টা করুন।');
+  })();
+  return libP[k];
+}
+const rd=(f,how)=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=()=>no(new Error('ফাইল পড়া যায়নি।'));r['readAs'+how](f);});
+function sizeTxt(n){return n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';}
+async function readImage(f){
+  const url=await rd(f,'DataURL');
+  const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error('এই ছবিটি খোলা যায়নি (HEIC হলে JPG করে দিন)।'));i.src=url;});
+  const okType=/^image\/(jpeg|png|gif|webp)$/.test(f.type);
+  const big=Math.max(img.naturalWidth,img.naturalHeight)>MAXDIM||f.size>3.5*1048576;
+  if(okType&&!big)return {mime:f.type,url:url};
+  const sc=Math.min(1,MAXDIM/Math.max(img.naturalWidth,img.naturalHeight));
+  const cv=document.createElement('canvas');cv.width=Math.round(img.naturalWidth*sc);cv.height=Math.round(img.naturalHeight*sc);
+  const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);cx.drawImage(img,0,0,cv.width,cv.height);
+  return {mime:'image/jpeg',url:cv.toDataURL('image/jpeg',0.9)};
+}
+async function readAny(f){
+  const n=f.name||'file',low=n.toLowerCase();
+  if(f.size>MAXF)throw new Error('ফাইল ২০ MB-এর বেশি বড়।');
+  if(/^image\//.test(f.type)||/\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(low)){
+    const r=await readImage(f);return {kind:'image',mime:r.mime,url:r.url,data:r.url.split(',')[1]};
+  }
+  if(f.type==='application/pdf'||low.endsWith('.pdf')){
+    const url=await rd(f,'DataURL');return {kind:'pdf',mime:'application/pdf',url:'data:application/pdf;base64,'+url.split(',')[1],data:url.split(',')[1]};
+  }
+  if(low.endsWith('.docx')){
+    const m=await loadLib('mammoth','mammoth');const r=await m.extractRawText({arrayBuffer:await rd(f,'ArrayBuffer')});
+    return {kind:'text',text:r.value};
+  }
+  if(/\.(xlsx|xls|xlsm|ods)$/.test(low)){
+    const X=await loadLib('xlsx','XLSX');const wb=X.read(await rd(f,'ArrayBuffer'),{type:'array'});
+    return {kind:'text',text:wb.SheetNames.map(s=>'### শিট: '+s+'\n'+X.utils.sheet_to_csv(wb.Sheets[s],{blankrows:false})).join('\n\n')};
+  }
+  if(/^text\//.test(f.type)||f.type==='application/json'||TEXT_EXT.test(low)){
+    return {kind:'text',text:await rd(f,'Text')};
+  }
+  throw new Error('এই ধরনের ফাইল চলবে না। ছবি, PDF, Word (.docx), Excel বা টেক্সট ফাইল দিন।');
+}
+function addFiles(list){
+  Array.from(list||[]).forEach(f=>{
+    if(pending.length>=10){alertChip('একবারে সর্বোচ্চ ১০টি ফাইল');return;}
+    const a={id:++aid,name:f.name||('ছবি-'+aid+'.png'),size:f.size,status:'loading'};
+    pending.push(a);renderChips();
+    readAny(f).then(r=>{Object.assign(a,r);if(a.kind==='text'&&a.text.length>MAXTXT){a.text=a.text.slice(0,MAXTXT)+'\n…(ফাইল বড় বলে বাকি অংশ বাদ)';a.cut=true;}a.status='ok';})
+      .catch(e=>{a.status='err';a.err=e.message;}).finally(renderChips);
+  });
+}
+function alertChip(t){const a={id:++aid,name:t,status:'err',err:''};pending.push(a);renderChips();}
+function chipIcon(a){return a.kind==='pdf'?'📕':a.kind==='text'?(/\.(xlsx|xls|csv|ods)$/i.test(a.name)?'📊':/\.docx$/i.test(a.name)?'📘':'📄'):'📎';}
+function renderChips(){
+  const box=$('#chips');box.innerHTML='';box.hidden=!pending.length;
+  pending.forEach(a=>{
+    const c=document.createElement('div');c.className='chip'+(a.status==='err'?' bad':'');
+    if(a.kind==='image'&&a.url){const i=document.createElement('img');i.src=a.url;i.alt='';c.appendChild(i);}
+    else{const i=document.createElement('span');i.className='ic';i.textContent=a.status==='loading'?'⏳':a.status==='err'?'⚠':chipIcon(a);c.appendChild(i);}
+    const nm=document.createElement('span');nm.className='nm';nm.textContent=a.name;
+    const sm=document.createElement('small');
+    sm.textContent=a.status==='loading'?'পড়া হচ্ছে…':a.status==='err'?a.err:(a.size?sizeTxt(a.size):'')+(a.cut?' · আংশিক':'');
+    nm.appendChild(sm);c.appendChild(nm);
+    const x=document.createElement('button');x.type='button';x.textContent='×';x.title='বাদ দিন';
+    x.onclick=()=>{pending=pending.filter(p=>p!==a);renderChips();};c.appendChild(x);
+    box.appendChild(c);
+  });
+}
+function textPart(prompt,att){
+  if(!att.length)return prompt;
+  let s='[ব্যবহারকারী '+toBn(att.length)+'টি ফাইল সংযুক্ত করেছেন: '+att.map(a=>a.name).join(', ')+']\n\n';
+  att.filter(a=>a.kind==='text').forEach(a=>{s+='===== ফাইল: '+a.name+' =====\n'+a.text+'\n===== ফাইল শেষ =====\n\n';});
+  return s+prompt;
+}
+function claudeContent(txt,att){
+  const bin=att.filter(a=>a.kind!=='text');if(!bin.length)return txt;
+  const c=bin.map(a=>a.kind==='image'?{type:'image',source:{type:'base64',media_type:a.mime,data:a.data}}
+    :{type:'document',source:{type:'base64',media_type:'application/pdf',data:a.data},title:a.name});
+  c.push({type:'text',text:txt});return c;
+}
+function gptContent(txt,att){
+  const bin=att.filter(a=>a.kind!=='text');if(!bin.length)return txt;
+  const c=[{type:'text',text:txt}];
+  bin.forEach(a=>c.push(a.kind==='image'?{type:'image_url',image_url:{url:a.url}}:{type:'file',file:{filename:a.name,file_data:a.url}}));
+  return c;
+}
+
+/* ---------- API ---------- */
+async function apiErr(r){
+  let j={};try{j=await r.json();}catch(e){}
+  const m=(j&&j.error&&j.error.message)||'';
+  if(r.status===401)return new Error('API কী সঠিক নয় (401)। '+m);
+  if(r.status===403)return new Error('অনুমতি নেই (403)। '+m);
+  if(r.status===404)return new Error('মডেলের নাম ভুল বা এই মডেলে অ্যাক্সেস নেই (404)। '+m);
+  if(r.status===429)return new Error('সীমা পেরিয়েছে বা অ্যাকাউন্টে ব্যালান্স নেই (429)। '+m);
+  if(r.status>=500)return new Error('সার্ভারে সাময়িক সমস্যা ('+r.status+')। একটু পরে আবার চেষ্টা করুন।');
+  return new Error('HTTP '+r.status+': '+m);
+}
+function netErr(e){
+  if(e.name==='AbortError')return e;
+  return new Error('নেটওয়ার্ক সংযোগে সমস্যা। ইন্টারনেট চেক করুন। ('+e.message+')');
+}
+async function callClaude(messages,system,o){
+  o=o||{};let r;
+  try{
+    r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:o.signal,
+      headers:{'content-type':'application/json','x-api-key':o.key||cfg.ck,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:o.model||cfg.cm,max_tokens:o.max||4096,system:system,messages:messages})});
+  }catch(e){throw netErr(e);}
+  if(!r.ok)throw await apiErr(r);
+  const j=await r.json();
+  const t=(j.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+  if(!t)throw new Error('Claude খালি উত্তর দিয়েছে।');
+  return t;
+}
+async function callGPT(messages,system,o){
+  o=o||{};let r;
+  try{
+    r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',signal:o.signal,
+      headers:{'content-type':'application/json','authorization':'Bearer '+(o.key||cfg.ok)},
+      body:JSON.stringify({model:o.model||cfg.om,messages:[{role:'system',content:system}].concat(messages)})});
+  }catch(e){throw netErr(e);}
+  if(!r.ok)throw await apiErr(r);
+  const j=await r.json();
+  const t=((j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||'').trim();
+  if(!t)throw new Error('ChatGPT খালি উত্তর দিয়েছে।');
+  return t;
+}
+function sysFor(w){
+  return 'তুমি '+NAME[w]+'। তুমি "AI জুটি" অ্যাপে আরেকটি AI ('+NAME[other(w)]+')-এর সাথে একটি দল হিসেবে ব্যবহারকারীকে সাহায্য করছ। '+
+    'ব্যবহারকারী যে ভাষায় লেখেন সেই ভাষায় উত্তর দাও; ভাষা অস্পষ্ট হলে বাংলায় লেখো। সহজ, সরাসরি ও সঠিক থাকো; কোনো তথ্যে নিশ্চিত না হলে তা স্পষ্ট বলো।'+
+    (cfg.sys?'\n\nব্যবহারকারীর অতিরিক্ত নির্দেশনা:\n'+cfg.sys:'');
+}
+function pastMsgs(){
+  const m=[];
+  history.filter(h=>h!==curRec&&h.final).slice(-5).forEach(h=>{
+    m.push({role:'user',content:h.q});
+    m.push({role:'assistant',content:clip(h.final,6000)});
+  });
+  return m;
+}
+function manualPrompt(w,prompt){
+  let s='[নির্দেশনা] '+sysFor(w)+'\n\n';
+  const past=history.filter(h=>h!==curRec&&h.final).slice(-2);
+  if(past.length){
+    s+='[আগের আলোচনার সংক্ষেপ]\n';
+    past.forEach(h=>{s+='প্রশ্ন: '+clip(h.q,500)+'\nউত্তর: '+clip(h.final,1500)+'\n\n';});
+    s+='[এখনকার কাজ]\n';
+  }
+  return s+prompt;
+}
+function manualAsk(w,prompt,card,bin){
+  bin=bin||[];
+  const signal=ctrl&&ctrl.signal;
+  const text=manualPrompt(w,prompt);
+  return new Promise((resolve,reject)=>{
+    const b=card.querySelector('.body');
+    const s1=NATIVE?'বাটন চাপলে প্রশ্নটি কপি হবে এবং '+NAME[w]+' ট্যাব খুলবে। সেখানে লেখার ঘরে লম্বা চাপ দিয়ে পেস্ট করে পাঠান।'
+      :'বাটন চাপলে প্রশ্নটি কপি হবে এবং '+NAME[w]+' খুলবে। সেখানে পেস্ট করে পাঠান।';
+    const s2=NATIVE?NAME[w]+'-এর উত্তরের নিচের কপি বাটন চাপুন, তারপর নিচের "AI জুটি" ট্যাবে ফিরে "পেস্ট করুন" চাপুন।'
+      :NAME[w]+'-এর উত্তর কপি করে নিচে পেস্ট করুন।';
+    b.innerHTML='<div class="man">'+
+      '<p class="mstep"><b>১.</b> '+s1+'</p>'+
+      '<div class="mrow"><a class="mbtn" target="_blank" rel="noopener"></a><button type="button" class="mbtn2 conly">শুধু কপি</button></div>'+
+      (bin.length?'<div class="mfiles"><b>'+NAME[w]+'-এ 📎 দিয়ে এই '+toBn(bin.length)+'টি ফাইলও যোগ করুন</b><small>একই চ্যাটে আগে দিয়ে থাকলে আবার লাগবে না।'+(NATIVE?' "সংরক্ষণ" চাপলে ফাইল ফোনের Download/AI Juti ফোল্ডারে যাবে।':'')+'</small></div>':'')+
+      '<details><summary>প্রশ্নটি দেখুন</summary><pre></pre></details>'+
+      '<p class="mstep"><b>২.</b> '+s2+'</p>'+
+      '<div class="mrow"><button type="button" class="mbtn2 pbtn">📋 পেস্ট করুন</button></div>'+
+      '<textarea class="in ma" placeholder="'+NAME[w]+'-এর উত্তর এখানে পেস্ট করুন…"></textarea>'+
+      '<p class="mmsg" hidden></p>'+
+      '<div class="mrow"><button type="button" class="mbtn submit">উত্তর জমা দিন</button></div></div>';
+    const a=b.querySelector('a.mbtn');a.href=SITE[w];
+    a.textContent=NATIVE?'📋 কপি করে '+NAME[w]+' ট্যাবে যান':'📋 কপি করে '+NAME[w]+' খুলুন';
+    b.querySelector('pre').textContent=text;
+    const mf=b.querySelector('.mfiles');
+    bin.forEach(f=>{
+      const r=document.createElement('div');
+      if(f.kind==='image'){const i=document.createElement('img');i.src=f.url;i.alt='';r.appendChild(i);}else r.appendChild(document.createTextNode('📕'));
+      r.appendChild(document.createTextNode(f.name));
+      const fname=f.name.replace(/\.(heic|heif|bmp)$/i,'.jpg');
+      const d=document.createElement('a');d.href=f.url;d.download=fname;d.textContent=NATIVE?'সংরক্ষণ':'ডাউনলোড';
+      if(NATIVE)d.addEventListener('click',e=>{e.preventDefault();NATIVE.save(fname,f.data,f.mime||'application/octet-stream');});
+      r.appendChild(d);
+      mf.appendChild(r);
+    });
+    const doCopy=el=>copyText(text,el);
+    a.addEventListener('click',e=>{
+      if(NATIVE){e.preventDefault();NATIVE.copy(text);NATIVE.open(w);}
+      else doCopy(a);
+    });
+    const co=b.querySelector('.conly');co.onclick=()=>doCopy(co);
+    const ta=b.querySelector('.ma'),msg=b.querySelector('.mmsg');
+    b.querySelector('.pbtn').onclick=()=>{
+      const put=v=>{if(v&&v.trim()){ta.value=v;msg.hidden=true;}else{msg.hidden=false;msg.textContent='ক্লিপবোর্ডে কোনো লেখা নেই। আগে '+NAME[w]+'-এর উত্তর কপি করুন।';}};
+      if(NATIVE){put(NATIVE.paste());return;}
+      if(navigator.clipboard&&navigator.clipboard.readText)navigator.clipboard.readText().then(put).catch(()=>{msg.hidden=false;msg.textContent='এখানে সরাসরি পেস্ট করা যাচ্ছে না। নিচের ঘরে লম্বা চাপ দিয়ে বা Ctrl+V দিয়ে পেস্ট করুন।';ta.focus();});
+      else{msg.hidden=false;msg.textContent='নিচের ঘরে লম্বা চাপ দিয়ে বা Ctrl+V দিয়ে পেস্ট করুন।';ta.focus();}
+    };
+    const onAbort=()=>{b.innerHTML='';reject(abortErr());};
+    if(signal){if(signal.aborted)return onAbort();signal.addEventListener('abort',onAbort,{once:true});}
+    b.querySelector('.submit').onclick=()=>{
+      const v=ta.value.trim();
+      if(!v){msg.hidden=false;msg.textContent='আগে '+NAME[w]+'-এর উত্তর পেস্ট করুন।';ta.focus();return;}
+      if(signal)signal.removeEventListener('abort',onAbort);
+      resolve(v);
+    };
+    card.scrollIntoView({block:'nearest',behavior:'smooth'});
+  });
+}
+function ask(w,prompt,card){
+  const att=(curRec&&attMap.get(curRec))||[];
+  const txt=textPart(prompt,att);
+  if(isManual(w))return manualAsk(w,txt,card,att.filter(a=>a.kind!=='text'));
+  const msgs=pastMsgs().concat([{role:'user',content:w==='claude'?claudeContent(txt,att):gptContent(txt,att)}]);
+  const o={signal:ctrl&&ctrl.signal};
+  return w==='claude'?callClaude(msgs,sysFor(w),o):callGPT(msgs,sysFor(w),o);
+}
+
+/* ---------- UI building ---------- */
+function showEmpty(){
+  chat.innerHTML='<div class="empty" id="empty"><h2>স্বাগতম! দুই AI একসাথে আপনার কাজ করবে</h2>'+
+  '<ul><li><b>পাশাপাশি:</b> একই প্রশ্নে Claude ও ChatGPT আলাদা উত্তর দেবে, আপনি তুলনা করবেন। চাইলে দুটো মিলিয়ে একটি চূড়ান্ত উত্তর নিতে পারবেন।</li>'+
+  '<li><b>সহযোগিতা:</b> একজন খসড়া লিখবে, অন্যজন ভুল ধরবে ও পরামর্শ দেবে, তারপর প্রথমজন উন্নত চূড়ান্ত উত্তর দেবে।</li>'+
+  '<li><b>আলোচনা:</b> দুজন একে অন্যের উত্তর যাচাই করে কয়েক রাউন্ড যুক্তি দেবে, শেষে সমন্বিত সিদ্ধান্ত।</li></ul>'+
+  (NATIVE?
+  '<div class="warn"><b>প্রথমবার:</b> নিচের <b>Claude</b> ও <b>ChatGPT</b> ট্যাবে গিয়ে নিজের সাবস্ক্রিপশন অ্যাকাউন্টে লগইন করুন (Google দিয়ে না হলে ইমেইল দিয়ে)। অ্যাপ লগইন মনে রাখবে।<br><b>তারপর:</b> এখানে প্রশ্ন লিখুন → বাটন চাপলে প্রশ্ন কপি হয়ে Claude/ChatGPT ট্যাব খুলবে → পেস্ট করে পাঠান → উত্তর কপি করে এখানে ফিরে "পেস্ট করুন" চাপুন।</div></div>'
+  :'<div class="warn"><b>সাবস্ক্রিপশন দিয়ে (বাড়তি খরচ নেই):</b> প্রতিটি ধাপে অ্যাপ প্রশ্ন বানিয়ে দেবে → বাটন চাপলে কপি হয়ে claude.ai / chatgpt.com খুলবে → সেখানে পেস্ট করে পাঠান → উত্তরটা কপি করে অ্যাপে পেস্ট করুন। চাইলে ⚙ সেটিংসে API কী দিয়ে পুরোটা স্বয়ংক্রিয় করতে পারবেন।</div></div>');
+}
+function addTurnEl(q,files){
+  const e=$('#empty');if(e)e.remove();
+  const t=document.createElement('section');t.className='turn';
+  const u=document.createElement('div');u.className='uq';u.textContent=q;
+  const s=document.createElement('div');s.className='steps';
+  t.appendChild(u);
+  if(files&&files.length){
+    const fa=document.createElement('div');fa.className='uatt';
+    files.forEach(f=>{
+      if(f.kind==='image'&&f.url){const i=document.createElement('img');i.src=f.url;i.alt=f.name;fa.appendChild(i);}
+      else{const sp=document.createElement('span');sp.textContent=(f.kind==='image'?'🖼 ':f.kind==='pdf'?'📕 ':'📄 ')+f.name;fa.appendChild(sp);}
+    });
+    t.appendChild(fa);
+  }
+  t.appendChild(s);chat.appendChild(t);scrollEnd();return t;
+}
+function addGroupEl(turn,title,cols){
+  const g=document.createElement('div');g.className='group'+(cols?' cols':'');
+  if(title){const h=document.createElement('div');h.className='gtitle';h.textContent=title;g.appendChild(h);}
+  const b=document.createElement('div');b.className='gbody';g.appendChild(b);
+  turn.querySelector('.steps').appendChild(g);return b;
+}
+function group(rec,turn,title,cols){
+  const g={title:title,cols:!!cols,steps:[]};rec.groups.push(g);
+  const box=addGroupEl(turn,title,cols);box._g=g;return box;
+}
+function addCard(box,w,label){
+  const c=document.createElement('article');c.className='card '+w;
+  c.innerHTML='<header><span class="who"></span><span class="lbl"></span><button class="copy" type="button">কপি</button></header><div class="body"><div class="loading"><i></i><i></i><i></i>ভাবছে…</div></div>';
+  c.querySelector('.who').textContent=NAME[w];c.querySelector('.lbl').textContent=label;
+  c.querySelector('.copy').hidden=true;
+  box.appendChild(c);scrollEnd();return c;
+}
+function fillCard(c,text,err){
+  const b=c.querySelector('.body');
+  if(err){c.classList.add('err');b.textContent='⚠ '+text;}
+  else{b.innerHTML=md(text);const cp=c.querySelector('.copy');cp.hidden=false;cp.onclick=()=>copyText(text,cp);}
+}
+function note(turn,text,bad){
+  const n=document.createElement('div');n.className='note'+(bad?' bad':'');n.textContent=text;
+  turn.querySelector('.steps').appendChild(n);scrollEnd();
+}
+async function step(box,w,label,prompt){
+  const c=addCard(box,w,label);const s={who:w,label:label,text:'',err:false};box._g.steps.push(s);
+  if(isManual(w))c.querySelector('.lbl').textContent=label+' · কপি-পেস্ট';
+  try{const t=await ask(w,prompt,c);s.text=t;fillCard(c,t);return t;}
+  catch(e){s.err=true;s.text=e.name==='AbortError'?'থামানো হয়েছে।':e.message;fillCard(c,s.text,true);throw e;}
+}
+function both(rs){
+  if(ctrl&&ctrl.signal.aborted)throw abortErr();
+  return rs.map(r=>r.status==='fulfilled'?r.value:null);
+}
+
+/* ---------- modes ---------- */
+async function runParallel(rec,turn,q){
+  const box=group(rec,turn,'দুজনের আলাদা উত্তর',true);
+  const v=both(await Promise.allSettled([step(box,'claude','উত্তর',q),step(box,'gpt','উত্তর',q)]));
+  if(!v[0]&&!v[1])throw new Error('কোনো AI-ই উত্তর দিতে পারেনি। সেটিংস ও ইন্টারনেট চেক করুন।');
+  if(v[0]&&v[1]){
+    rec.final='**Claude-এর উত্তর:**\n'+v[0]+'\n\n**ChatGPT-এর উত্তর:**\n'+v[1];
+    rec.mergeable=true;addMergeBtn(rec,turn);
+  }else rec.final=v[0]||v[1];
+}
+function addMergeBtn(rec,turn){
+  const b=document.createElement('button');b.type='button';b.className='mergebtn';
+  b.textContent='🔗 দুটি উত্তর মিলিয়ে একটি চূড়ান্ত উত্তর নিন ('+NAME[cfg.lead]+')';
+  b.onclick=async()=>{
+    if(busy)return;b.remove();
+    const g=rec.groups[0];const a=g.steps.find(s=>s.who==='claude');const c=g.steps.find(s=>s.who==='gpt');
+    await runTask(turn,rec,false,async()=>{
+      const box=group(rec,turn,'সমন্বিত চূড়ান্ত উত্তর',false);
+      const t=await step(box,cfg.lead,'দুটি উত্তর মিলিয়ে',
+        'ব্যবহারকারীর প্রশ্ন:\n'+rec.q+'\n\nClaude-এর উত্তর:\n'+a.text+'\n\nChatGPT-এর উত্তর:\n'+c.text+
+        '\n\nদুটি উত্তর তুলনা করো। দুটির সবচেয়ে সঠিক ও কাজের অংশ নিয়ে একটি পূর্ণাঙ্গ চূড়ান্ত উত্তর লেখো। কোনো তথ্যে দুটি উত্তর পরস্পরবিরোধী হলে কোনটি সঠিক এবং কেন, সংক্ষেপে জানাও।');
+      rec.final=t;rec.merged=true;
+    });
+  };
+  turn.querySelector('.steps').appendChild(b);scrollEnd();
+}
+async function runCollab(rec,turn,q){
+  const L=cfg.lead,O=other(L);
+  const d=await step(group(rec,turn,'ধাপ ১ — খসড়া',false),L,'খসড়া উত্তর',q);
+  const r=await step(group(rec,turn,'ধাপ ২ — পর্যালোচনা',false),O,'খসড়া যাচাই ও পরামর্শ',
+    'ব্যবহারকারীর প্রশ্ন:\n'+q+'\n\n'+NAME[L]+'-এর খসড়া উত্তর:\n'+d+
+    '\n\nএই খসড়াটি সমালোচনামূলকভাবে পর্যালোচনা করো: ভুল তথ্য, বাদ পড়া গুরুত্বপূর্ণ বিষয়, অস্পষ্টতা বা দুর্বলতা চিহ্নিত করো এবং নির্দিষ্ট উন্নতির পরামর্শ দাও। খসড়া ভালো হলে সেটাও বলো। সংক্ষিপ্ত ও সুনির্দিষ্ট থাকো।');
+  const f=await step(group(rec,turn,'ধাপ ৩ — চূড়ান্ত উত্তর',false),L,'উন্নত চূড়ান্ত উত্তর',
+    'ব্যবহারকারীর প্রশ্ন:\n'+q+'\n\nতোমার খসড়া:\n'+d+'\n\n'+NAME[O]+'-এর পর্যালোচনা:\n'+r+
+    '\n\nপর্যালোচনার যে পরামর্শগুলো সঠিক সেগুলো গ্রহণ করো, ভুল পরামর্শ বাদ দাও। তারপর ব্যবহারকারীর জন্য পূর্ণাঙ্গ চূড়ান্ত উত্তর লেখো। পর্যালোচনা প্রক্রিয়ার বর্ণনা না দিয়ে সরাসরি উত্তর দাও।');
+  rec.final=f;
+}
+async function runDebate(rec,turn,q){
+  const n=Math.max(2,Math.min(4,parseInt(cfg.rounds,10)||2));
+  let box=group(rec,turn,'রাউন্ড ১ — স্বাধীন উত্তর',true);
+  let v=both(await Promise.allSettled([step(box,'claude','প্রথম উত্তর',q),step(box,'gpt','প্রথম উত্তর',q)]));
+  if(!v[0]||!v[1])throw new Error('আলোচনার জন্য দুটি AI-এরই উত্তর দরকার। একটি ব্যর্থ হয়েছে।');
+  let last={claude:v[0],gpt:v[1]};
+  for(let r=2;r<=n;r++){
+    box=group(rec,turn,'রাউন্ড '+toBn(r)+' — পাল্টা যুক্তি ও সংশোধন',true);
+    const pr=w=>'ব্যবহারকারীর প্রশ্ন:\n'+q+'\n\nতোমার আগের উত্তর:\n'+clip(last[w],8000)+'\n\n'+NAME[other(w)]+'-এর উত্তর:\n'+clip(last[other(w)],8000)+
+      '\n\n'+NAME[other(w)]+'-এর উত্তরটি যুক্তি ও তথ্যের ভিত্তিতে যাচাই করো। প্রথমে সংক্ষেপে বলো কোথায় একমত, কোথায় দ্বিমত এবং কেন। শুধু ভদ্রতার খাতিরে একমত হবে না, আবার অকারণে জেদও করবে না। তারপর "সংশোধিত উত্তর" শিরোনামে তোমার উন্নত উত্তর দাও।';
+    v=both(await Promise.allSettled([step(box,'claude','রাউন্ড '+toBn(r),pr('claude')),step(box,'gpt','রাউন্ড '+toBn(r),pr('gpt'))]));
+    if(!v[0]||!v[1])throw new Error('রাউন্ড '+toBn(r)+'-এ একটি AI ব্যর্থ হয়েছে।');
+    last={claude:v[0],gpt:v[1]};
+  }
+  const f=await step(group(rec,turn,'সমন্বিত সিদ্ধান্ত',false),cfg.lead,'চূড়ান্ত উত্তর',
+    'ব্যবহারকারীর প্রশ্ন:\n'+q+'\n\nআলোচনার শেষে Claude-এর অবস্থান:\n'+clip(last.claude,8000)+'\n\nআলোচনার শেষে ChatGPT-এর অবস্থান:\n'+clip(last.gpt,8000)+
+    '\n\nদুই পক্ষের যুক্তি বিবেচনা করে ব্যবহারকারীর জন্য একটি সমন্বিত চূড়ান্ত উত্তর লেখো, সবচেয়ে সঠিক ও কাজের তথ্য রেখে। কোনো বিষয়ে মতভেদ থেকে গেলে শেষে "মতভেদ" অংশে সংক্ষেপে দুই পক্ষের অবস্থান জানাও।');
+  rec.final=f;
+}
+function toBn(n){return String(n).replace(/\d/g,d=>'০১২৩৪৫৬৭৮৯'[d]);}
+
+/* ---------- task control ---------- */
+function setBusy(b){
+  const s=$('#sendBtn');
+  s.textContent=b?'থামান':'পাঠান';s.classList.toggle('stop',b);s.type=b?'button':'submit';
+}
+async function runTask(turn,rec,isNew,fn){
+  busy=true;ctrl=new AbortController();curRec=rec;setBusy(true);
+  if(isNew)history.push(rec);
+  try{await fn();}
+  catch(e){
+    const ab=e.name==='AbortError';const t=ab?'⏹ থামানো হয়েছে।':'⚠ '+e.message;
+    rec.note=t;note(turn,t,!ab);
+  }finally{
+    S.set('history',history.slice(-30));
+    busy=false;ctrl=null;curRec=null;setBusy(false);
+  }
+}
+async function send(){
+  let q=$('#q').value.trim();
+  if(busy)return;
+  if(pending.some(a=>a.status==='loading')){flashNote('ফাইল পড়া শেষ হওয়া পর্যন্ত অপেক্ষা করুন…');return;}
+  const att=pending.filter(a=>a.status==='ok');
+  if(!q&&!att.length)return;
+  if(!q)q='সংযুক্ত ফাইলটি ভালোভাবে দেখে মূল বিষয়গুলো বুঝিয়ে বলো।';
+  const miss=missingKeys();
+  if(miss.length){openSettings(miss.join(' ও ')+'-এর API কী দিন, অথবা সংযোগ পদ্ধতি "সাবস্ক্রিপশন দিয়ে (কপি-পেস্ট)" বেছে নিন।');return;}
+  $('#q').value='';autosize();
+  const rec={q:q,mode:mode,groups:[],final:'',files:att.map(a=>({name:a.name,kind:a.kind}))};
+  attMap.set(rec,att);pending=[];renderChips();
+  const turn=addTurnEl(q,att);
+  const fn=mode==='collab'?runCollab:mode==='debate'?runDebate:runParallel;
+  await runTask(turn,rec,true,()=>fn(rec,turn,q));
+}
+
+/* ---------- restore / export ---------- */
+function renderHistory(){
+  chat.innerHTML='';
+  if(!history.length){showEmpty();return;}
+  history.forEach(rec=>{
+    const turn=addTurnEl(rec.q,rec.files);
+    rec.groups.forEach(g=>{
+      const box=addGroupEl(turn,g.title,g.cols);
+      g.steps.forEach(s=>fillCard(addCard(box,s.who,s.label),s.text||'(উত্তর সম্পূর্ণ হয়নি)',s.err||!s.text));
+    });
+    if(rec.note)note(turn,rec.note,rec.note.indexOf('⚠')===0);
+    if(rec.mergeable&&!rec.merged)addMergeBtn(rec,turn);
+  });
+}
+function exportMd(){
+  if(!history.length){alert('সংরক্ষণ করার মতো কোনো আলোচনা নেই।');return;}
+  const modeName={parallel:'পাশাপাশি',collab:'সহযোগিতা',debate:'আলোচনা'};
+  let s='# AI জুটি — আলোচনার রেকর্ড\n\nসংরক্ষণের সময়: '+new Date().toLocaleString('bn-BD')+'\n\n';
+  history.forEach((h,i)=>{
+    s+='---\n\n## প্রশ্ন '+toBn(i+1)+' ('+(modeName[h.mode]||'')+')\n\n'+h.q+'\n\n';
+    if(h.files&&h.files.length)s+='সংযুক্ত ফাইল: '+h.files.map(f=>f.name).join(', ')+'\n\n';
+    h.groups.forEach(g=>{
+      if(g.title)s+='### '+g.title+'\n\n';
+      g.steps.forEach(st=>{s+='#### '+NAME[st.who]+' — '+st.label+'\n\n'+(st.err?'⚠ ':'')+st.text+'\n\n';});
+    });
+  });
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  const base='ai-juti-'+p(d.getDate())+'-'+p(d.getMonth()+1)+'-'+d.getFullYear();
+  if(NATIVE){NATIVE.save(base+'.txt',btoa(unescape(encodeURIComponent(s))),'text/plain');return;}
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([s],{type:'text/markdown;charset=utf-8'}));
+  a.download=base+'.md';
+  document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+}
+
+/* ---------- settings ---------- */
+const dlg=$('#dlg');
+function openSettings(msg){
+  $('#cmode').value=isManual('claude')?'manual':'api';$('#omode').value=isManual('gpt')?'manual':'api';syncModeUI();
+  $('#ck').value=cfg.ck;$('#cm').value=cfg.cm;$('#ok').value=cfg.ok;$('#om').value=cfg.om;
+  $('#lead').value=cfg.lead;$('#rounds').value=String(cfg.rounds);$('#sys').value=cfg.sys;$('#remember').checked=cfg.remember;
+  $('#tcr').textContent='';$('#tgr').textContent='';
+  const m=$('#dmsg');m.hidden=!msg;m.textContent=msg||'';
+  if(dlg.showModal)dlg.showModal();else dlg.setAttribute('open','');
+}
+function syncModeUI(){$('#cApi').hidden=$('#cmode').value!=='api';$('#oApi').hidden=$('#omode').value!=='api';}
+$('#cmode').addEventListener('change',syncModeUI);$('#omode').addEventListener('change',syncModeUI);
+function closeSettings(){if(dlg.close)dlg.close();else dlg.removeAttribute('open');}
+function saveSettings(){
+  cfg={cmode:$('#cmode').value,omode:$('#omode').value,ck:$('#ck').value.trim(),cm:$('#cm').value.trim()||DEF.cm,ok:$('#ok').value.trim(),om:$('#om').value.trim()||DEF.om,
+    lead:$('#lead').value,rounds:parseInt($('#rounds').value,10)||2,sys:$('#sys').value.trim(),remember:$('#remember').checked};
+  const saved=Object.assign({},cfg);if(!cfg.remember){saved.ck='';saved.ok='';}
+  S.set('cfg',saved);closeSettings();
+}
+async function testKey(w){
+  const out=w==='claude'?$('#tcr'):$('#tgr');
+  const key=(w==='claude'?$('#ck'):$('#ok')).value.trim();
+  const model=(w==='claude'?$('#cm'):$('#om')).value.trim();
+  if(!key){out.className='tres bad';out.textContent='আগে কী লিখুন।';return;}
+  out.className='tres';out.textContent='যাচাই হচ্ছে…';
+  try{
+    const msgs=[{role:'user',content:'Say OK'}];
+    if(w==='claude')await callClaude(msgs,'Reply with OK only.',{key:key,model:model,max:10});
+    else await callGPT(msgs,'Reply with OK only.',{key:key,model:model});
+    out.className='tres ok';out.textContent='✓ কী ও মডেল ঠিক আছে ('+model+')';
+  }catch(e){out.className='tres bad';out.textContent='✗ '+e.message;}
+}
+
+/* ---------- events ---------- */
+function setMode(m){
+  mode=m;S.set('mode',m);
+  document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
+}
+function autosize(){const t=$('#q');t.style.height='auto';t.style.height=Math.min(t.scrollHeight,180)+'px';}
+document.querySelectorAll('#modes button').forEach(b=>b.onclick=()=>{if(!busy)setMode(b.dataset.mode);});
+$('#form').addEventListener('submit',e=>{e.preventDefault();send();});
+$('#sendBtn').addEventListener('click',e=>{if(busy){e.preventDefault();if(ctrl)ctrl.abort();}});
+$('#q').addEventListener('input',autosize);
+$('#q').addEventListener('keydown',e=>{
+  const fine=window.matchMedia&&window.matchMedia('(pointer:fine)').matches;
+  if(e.key==='Enter'&&!e.shiftKey&&(fine||e.ctrlKey||e.metaKey)){e.preventDefault();send();}
+});
+$('#setBtn').onclick=()=>openSettings();
+$('#xBtn').onclick=closeSettings;$('#cancelBtn').onclick=closeSettings;$('#saveBtn').onclick=saveSettings;
+$('#tc').onclick=()=>testKey('claude');$('#tg').onclick=()=>testKey('gpt');
+$('#newBtn').onclick=()=>{
+  if(busy)return;
+  if(history.length&&!confirm('বর্তমান আলোচনা মুছে নতুন শুরু করবেন? (আগে “সংরক্ষণ” দিয়ে ফাইল রেখে দিতে পারেন)'))return;
+  history=[];S.set('history',[]);renderHistory();
+};
+$('#exportBtn').onclick=exportMd;
+$('#attBtn').onclick=()=>$('#fileIn').click();
+$('#fileIn').onchange=e=>{addFiles(e.target.files);e.target.value='';};
+$('#q').addEventListener('paste',e=>{
+  const fs=Array.from((e.clipboardData&&e.clipboardData.files)||[]);
+  if(fs.length){e.preventDefault();addFiles(fs);}
+});
+let dragN=0;
+document.addEventListener('dragenter',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types||[]).includes('Files')){dragN++;document.body.classList.add('drag');}});
+document.addEventListener('dragleave',()=>{dragN=Math.max(0,dragN-1);if(!dragN)document.body.classList.remove('drag');});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{e.preventDefault();dragN=0;document.body.classList.remove('drag');if(e.dataTransfer&&e.dataTransfer.files.length)addFiles(e.dataTransfer.files);});
+function flashNote(t){const f=$('.foot');const o=f.dataset.o||(f.dataset.o=f.textContent);f.textContent=t;f.style.color='var(--err)';setTimeout(()=>{f.textContent=o;f.style.color='';},2500);}
+
+setMode(mode);renderHistory();
+if(missingKeys().length)setTimeout(()=>openSettings(),300);
+})();
+</script>
+</body>
+</html>

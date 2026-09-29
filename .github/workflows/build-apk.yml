@@ -1,0 +1,50 @@
+name: Build AI Juti APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build APK
+        run: gradle assembleRelease --stacktrace
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk AI-Juti.apk
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI-Juti-apk
+          path: AI-Juti.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: AI জুটি v1.0.${{ github.run_number }}
+          body: |
+            নিচের **AI-Juti.apk** ফাইলটি ডাউনলোড করে ইনস্টল করুন।
+            আগের ভার্সন ইনস্টল থাকলে এটি তার ওপরেই আপডেট হবে; লগইন ঠিক থাকবে।
+          files: AI-Juti.apk
+          make_latest: true
