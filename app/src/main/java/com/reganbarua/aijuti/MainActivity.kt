@@ -9,6 +9,8 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.view.MotionEvent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -56,8 +58,12 @@ class MainActivity : Activity() {
 
     private val home = "https://appassets.androidplatform.net/assets/index.html"
     private val sites = arrayOf(home, "https://claude.ai/new", "https://chatgpt.com/")
-    private val tabNames = arrayOf("AI জুটি", "Claude", "ChatGPT")
-    private val tabColors = intArrayOf(0xFF2F4BD1.toInt(), 0xFFC96442.toInt(), 0xFF10A37F.toInt())
+    private val tabNames = arrayOf("AI জুটি", "Claude", "ChatGPT", "একসাথে")
+    private val tabColors = intArrayOf(0xFF2F4BD1.toInt(), 0xFFC96442.toInt(), 0xFF10A37F.toInt(), 0xFF6B4FD1.toInt())
+    private lateinit var split: LinearLayout
+    private lateinit var divider: View
+    private var ratio = 0.5f          // "একসাথে" ট্যাবে Claude কতটা জায়গা পাবে
+    private var preferSplit = false   // শেষবার "একসাথে" ট্যাব ব্যবহার করলে কপি-বাটন সেখানেই নিয়ে যাবে
     private val muted = 0xFF6B6B72.toInt()
     private val line = 0xFFE2DFD6.toInt()
 
@@ -92,7 +98,15 @@ class MainActivity : Activity() {
         }
         val frame = FrameLayout(this)
         webs = Array(3) { makeWeb(it) }
-        webs.forEach { frame.addView(it, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)) }
+        frame.addView(webs[0], FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        // Claude ও ChatGPT একই লেআউটে: আলাদা ট্যাবে একটি, "একসাথে" ট্যাবে দুটোই
+        split = LinearLayout(this)
+        divider = makeDivider()
+        split.addView(webs[1])
+        split.addView(divider)
+        split.addView(webs[2])
+        frame.addView(split, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+        applySplitOrientation()
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
             visibility = View.GONE
@@ -105,17 +119,18 @@ class MainActivity : Activity() {
             orientation = LinearLayout.HORIZONTAL
             setBackgroundColor(Color.WHITE)
         }
-        tabViews = Array(3) { i ->
+        tabViews = Array(4) { i ->
             TextView(this).apply {
                 text = tabNames[i]
                 gravity = Gravity.CENTER
-                textSize = 15f
+                textSize = 14f
+                maxLines = 1
                 setPadding(0, dp(13), 0, dp(13))
                 setOnClickListener { show(i) }
                 setOnLongClickListener {
-                    if (loaded[i]) {
-                        webs[i].reload(); toast(tabNames[i] + " আবার লোড হচ্ছে…")
-                    }
+                    val which = if (i == 3) listOf(1, 2) else listOf(i)
+                    which.filter { loaded[it] }.forEach { webs[it].reload() }
+                    toast(tabNames[i] + " আবার লোড হচ্ছে…")
                     true
                 }
             }
@@ -178,7 +193,7 @@ class MainActivity : Activity() {
 
         w.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, p: Int) {
-                if (view === webs.getOrNull(current)) updateProgress(p)
+                if (view.visibility == View.VISIBLE) updateProgress(visibleProgress())
             }
 
             override fun onShowFileChooser(
@@ -237,20 +252,102 @@ class MainActivity : Activity() {
         progress.visibility = if (p in 1..99) View.VISIBLE else View.GONE
     }
 
+    private fun visibleProgress(): Int =
+        webs.filter { it.visibility == View.VISIBLE && (it.parent as View).visibility == View.VISIBLE }
+            .minOfOrNull { it.progress } ?: 100
+
+    /** ট্যাব: 0 = AI জুটি, 1 = Claude, 2 = ChatGPT, 3 = একসাথে (Claude + ChatGPT) */
     private fun show(i: Int) {
         current = i
-        webs.forEachIndexed { k, w -> w.visibility = if (k == i) View.VISIBLE else View.GONE }
-        if (!loaded[i]) {
-            loaded[i] = true
-            webs[i].loadUrl(sites[i])
+        val showClaude = i == 1 || i == 3
+        val showGpt = i == 2 || i == 3
+        webs[0].visibility = if (i == 0) View.VISIBLE else View.GONE
+        split.visibility = if (i == 0) View.GONE else View.VISIBLE
+        webs[1].visibility = if (showClaude) View.VISIBLE else View.GONE
+        webs[2].visibility = if (showGpt) View.VISIBLE else View.GONE
+        divider.visibility = if (i == 3) View.VISIBLE else View.GONE
+        if (i == 1 || i == 2) preferSplit = false
+        if (i == 3) preferSplit = true
+        for (k in 0..2) {
+            val need = (k == 0 && i == 0) || (k == 1 && showClaude) || (k == 2 && showGpt)
+            if (need && !loaded[k]) {
+                loaded[k] = true
+                webs[k].loadUrl(sites[k])
+            }
         }
+        applyWeights()
         tabViews.forEachIndexed { k, t ->
             val on = k == i
             t.setTextColor(if (on) tabColors[k] else muted)
             t.setTypeface(null, if (on) Typeface.BOLD else Typeface.NORMAL)
             t.background = if (on) indicator(tabColors[k]) else null
         }
-        updateProgress(webs[i].progress)
+        updateProgress(visibleProgress())
+    }
+
+    private fun isVerticalSplit() =
+        resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE
+
+    /** খাড়া ফোনে ওপরে-নিচে, আড়াআড়ি ফোনে পাশাপাশি */
+    private fun applySplitOrientation() {
+        val vertical = isVerticalSplit()
+        split.orientation = if (vertical) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
+        divider.layoutParams = if (vertical) LinearLayout.LayoutParams(MATCH_PARENT, dp(20))
+        else LinearLayout.LayoutParams(dp(20), MATCH_PARENT)
+        (divider as FrameLayout).getChildAt(0).layoutParams =
+            (if (vertical) FrameLayout.LayoutParams(dp(44), dp(5)) else FrameLayout.LayoutParams(dp(5), dp(44)))
+                .apply { gravity = Gravity.CENTER }
+        applyWeights()
+    }
+
+    private fun applyWeights() {
+        val vertical = isVerticalSplit()
+        val both = current == 3
+        val w1 = if (both) ratio else 1f
+        val w2 = if (both) 1f - ratio else 1f
+        webs[1].layoutParams = if (vertical) LinearLayout.LayoutParams(MATCH_PARENT, 0, w1)
+        else LinearLayout.LayoutParams(0, MATCH_PARENT, w1)
+        webs[2].layoutParams = if (vertical) LinearLayout.LayoutParams(MATCH_PARENT, 0, w2)
+        else LinearLayout.LayoutParams(0, MATCH_PARENT, w2)
+        split.requestLayout()
+    }
+
+    /** মাঝের দাগ: টেনে আকার বদলানো যায়, দুইবার চাপলে সমান হয় */
+    private fun makeDivider(): FrameLayout {
+        val d = FrameLayout(this)
+        d.setBackgroundColor(0xFFEFEDE6.toInt())
+        val grip = View(this).apply {
+            background = GradientDrawable().apply { setColor(0xFF9A9BA6.toInt()); cornerRadius = dp(3).toFloat() }
+        }
+        d.addView(grip, FrameLayout.LayoutParams(dp(44), dp(5)).apply { gravity = Gravity.CENTER })
+        var lastTap = 0L
+        d.setOnTouchListener { _, e ->
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    val now = System.currentTimeMillis()
+                    if (now - lastTap < 300) { ratio = 0.5f; applyWeights() }
+                    lastTap = now
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val loc = IntArray(2)
+                    split.getLocationOnScreen(loc)
+                    val vertical = isVerticalSplit()
+                    val total = (if (vertical) split.height else split.width).toFloat()
+                    if (total > 0) {
+                        val pos = if (vertical) e.rawY - loc[1] else e.rawX - loc[0]
+                        ratio = (pos / total).coerceIn(0.15f, 0.85f)
+                        applyWeights()
+                    }
+                }
+            }
+            true
+        }
+        return d
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applySplitOrientation()
     }
 
     private fun indicator(color: Int): LayerDrawable {
@@ -312,7 +409,9 @@ class MainActivity : Activity() {
     /** AI জুটি পাতার জন্য সংযোগ (শুধু অ্যাপের নিজের পাতা ব্যবহার করে) */
     inner class HomeBridge {
         @JavascriptInterface
-        fun open(which: String) = main.post { show(if (which == "gpt") 2 else 1) }
+        fun open(which: String) = main.post {
+            if (preferSplit) show(3) else show(if (which == "gpt") 2 else 1)
+        }
 
         @JavascriptInterface
         fun copy(text: String) = main.post {
@@ -374,7 +473,12 @@ class MainActivity : Activity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        val w = webs[current]
+        val w = when (current) {
+            0 -> webs[0]
+            1 -> webs[1]
+            2 -> webs[2]
+            else -> if (webs[2].hasFocus()) webs[2] else webs[1]
+        }
         when {
             w.canGoBack() -> w.goBack()
             current != 0 -> show(0)
