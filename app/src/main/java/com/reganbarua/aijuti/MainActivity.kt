@@ -34,6 +34,7 @@ import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
@@ -142,6 +143,34 @@ class MainActivity : Activity() {
         show(savedInstanceState?.getInt("tab") ?: 0)
     }
 
+    // ---------- ডেস্কটপ মোড ----------
+    private val prefs by lazy { getSharedPreferences("aijuti", Context.MODE_PRIVATE) }
+    private var desktop: Boolean
+        get() = prefs.getBoolean("desktop", true)
+        set(v) { prefs.edit().putBoolean("desktop", v).apply() }
+
+    /** ফোনের নিজস্ব Chrome সংস্করণ রেখে কম্পিউটারের ব্রাউজারের মতো পরিচয় */
+    private val desktopUA by lazy {
+        val ua = try { WebSettings.getDefaultUserAgent(this) } catch (e: Exception) { "" }
+        val chrome = Regex("Chrome/[\\d.]+").find(ua)?.value ?: "Chrome/124.0.0.0"
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) $chrome Safari/537.36"
+    }
+
+    private fun applyDesktop(w: WebView, i: Int) {
+        // AI জুটির পাতা নিজেই ডেস্কটপ লেআউট বেছে নেয় (isDesktop দেখে); Claude/ChatGPT-এর জন্য পরিচয় বদলায়
+        if (i != 0) w.settings.userAgentString = if (desktop) desktopUA else null
+    }
+
+    private fun setDesktopMode(on: Boolean) {
+        if (on == desktop) return
+        desktop = on
+        webs.forEachIndexed { k, w ->
+            applyDesktop(w, k)
+            if (loaded[k]) w.reload()
+        }
+        toast(if (on) "ডেস্কটপ মোড চালু হয়েছে" else "মোবাইল মোড চালু হয়েছে")
+    }
+
     private fun makeWeb(i: Int): WebView {
         val w = WebView(this)
         w.visibility = View.GONE
@@ -152,7 +181,10 @@ class MainActivity : Activity() {
             databaseEnabled = true
             loadWithOverviewMode = true
             useWideViewPort = true
-            setSupportZoom(false)
+            // ডেস্কটপ মোডে চিমটি দিয়ে জুম করা যায়
+            setSupportZoom(true)
+            builtInZoomControls = true
+            displayZoomControls = false
             allowFileAccess = false
             allowContentAccess = true
             javaScriptCanOpenWindowsAutomatically = false
@@ -161,6 +193,7 @@ class MainActivity : Activity() {
             textZoom = 100
         }
         CookieManager.getInstance().setAcceptThirdPartyCookies(w, true)
+        applyDesktop(w, i)
 
         if (i == 0) {
             w.addJavascriptInterface(HomeBridge(), "AIJuti")
@@ -429,6 +462,12 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun save(name: String, b64: String, mime: String) = saveFile(name, b64, mime)
+
+        @JavascriptInterface
+        fun isDesktop(): Boolean = desktop
+
+        @JavascriptInterface
+        fun setDesktop(on: Boolean) = main.post { setDesktopMode(on) }
 
         @JavascriptInterface
         fun version(): String = try {

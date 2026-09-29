@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1f2230">
+<script>/* মোবাইল অ্যাপে ডেস্কটপ মোড চালু থাকলে কম্পিউটারের মতো চওড়া লেআউট */
+try{if(window.AIJuti&&AIJuti.isDesktop&&AIJuti.isDesktop()){document.querySelector('meta[name=viewport]').setAttribute('content','width=1000');}}catch(e){}</script>
 <title>AI জুটি</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -221,6 +223,7 @@ body.drag::after{content:"ফাইল এখানে ছেড়ে দিন
       <label for="sys">দুই AI-এর জন্য অতিরিক্ত নির্দেশনা (ঐচ্ছিক)</label>
       <textarea class="in" id="sys" rows="3" placeholder="যেমন: সব উত্তর সংক্ষেপে বাংলায় দেবে।"></textarea>
     </div>
+    <div id="deskRow" hidden><label class="chk"><input type="checkbox" id="desk"> ডেস্কটপ মোড (Claude, ChatGPT ও এই পাতা কম্পিউটারের মতো দেখাবে; চিমটি দিয়ে জুম করা যায়)</label></div>
     <label class="chk"><input type="checkbox" id="remember"> এই ডিভাইসে API কী মনে রাখুন</label>
     <p class="hint">কী শুধু আপনার এই ব্রাউজারে থাকে এবং সরাসরি Anthropic ও OpenAI-এর সার্ভারে যায়; অন্য কোথাও পাঠানো হয় না। পাবলিক বা অন্যের কম্পিউটারে “মনে রাখুন” বন্ধ রাখুন।</p>
   </div>
@@ -700,6 +703,7 @@ function openSettings(msg){
   $('#ck').value=cfg.ck;$('#cm').value=cfg.cm;$('#ok').value=cfg.ok;$('#om').value=cfg.om;
   $('#lead').value=cfg.lead;$('#rounds').value=String(cfg.rounds);$('#sys').value=cfg.sys;$('#remember').checked=cfg.remember;
   $('#tcr').textContent='';$('#tgr').textContent='';
+  $('#deskRow').hidden=!(NATIVE&&NATIVE.isDesktop);if(NATIVE&&NATIVE.isDesktop)$('#desk').checked=NATIVE.isDesktop();
   const m=$('#dmsg');m.hidden=!msg;m.textContent=msg||'';
   if(dlg.showModal)dlg.showModal();else dlg.setAttribute('open','');
 }
@@ -711,6 +715,7 @@ function saveSettings(){
     lead:$('#lead').value,rounds:parseInt($('#rounds').value,10)||2,sys:$('#sys').value.trim(),remember:$('#remember').checked};
   const saved=Object.assign({},cfg);if(!cfg.remember){saved.ck='';saved.ok='';}
   S.set('cfg',saved);closeSettings();
+  if(NATIVE&&NATIVE.setDesktop&&$('#desk').checked!==NATIVE.isDesktop())NATIVE.setDesktop($('#desk').checked);
 }
 async function testKey(w){
   const out=w==='claude'?$('#tcr'):$('#tgr');
