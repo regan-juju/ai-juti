@@ -30,13 +30,18 @@ jobs:
         run: gradle assembleRelease --stacktrace
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk AI-Juti.apk
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk AI-Juti.apk
+          cp desk/build/outputs/apk/release/desk-release.apk Claude-Desk.apk
+          ls -la *.apk
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: AI-Juti-apk
-          path: AI-Juti.apk
+          path: |
+            AI-Juti.apk
+            Claude-Desk.apk
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -44,7 +49,10 @@ jobs:
           tag_name: v1.0.${{ github.run_number }}
           name: AI জুটি v1.0.${{ github.run_number }}
           body: |
-            নিচের **AI-Juti.apk** ফাইলটি ডাউনলোড করে ইনস্টল করুন।
-            আগের ভার্সন ইনস্টল থাকলে এটি তার ওপরেই আপডেট হবে; লগইন ঠিক থাকবে।
-          files: AI-Juti.apk
+            - **AI-Juti.apk** — Claude ও ChatGPT একসাথে (AI জুটি)
+            - **Claude-Desk.apk** — শুধু claude.ai, ডেস্কটপ সংস্করণে (হালকা)
+            আগের ভার্সন ইনস্টল থাকলে নতুনটি তার ওপরেই আপডেট হবে; লগইন ঠিক থাকবে।
+          files: |
+            AI-Juti.apk
+            Claude-Desk.apk
           make_latest: true

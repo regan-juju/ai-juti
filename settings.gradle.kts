@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "AIJuti"
 include(":app")
+include(":desk")
